@@ -18,15 +18,15 @@ create table Klasse(
 create table Bil(
 	registreringsnummer char(7) not null primary key,
 	beskrivelse nvarchar(255) not null,
-	klasse char(1) not null foreign key references Klasse(klasse), -- Potentielt kunne klasse sammenkobles med mærke og model i stedet, men så vil det ikke være muligt at rykke en bil ned i klasse som det får skader eller har mange kilometer
+	klasse char(1) not null foreign key references Klasse(klasse),
 	stationsnummer char(8) not null foreign key references Station(stationsnummer)
 )
 
 create table Skade(
-	bil char(7) not null foreign key references Bil(registreringsnummer), -- Clustered index er ikke på, da bil ikke er primary key, eftersom den ikke skal være unik.
+	bil char(7) not null foreign key references Bil(registreringsnummer) on delete cascade, -- Clustered index er ikke på, da bil ikke er primary key, eftersom den ikke skal være unik.
 	beskrivelse nvarchar(255) not null,
-	grad int not null -- Bruges til at vurdere om bilen skal pensioneres, eller påskrives en rabat. Jo højere en grad, jo værre en skade, derved kan man summe alle graden af alle skader på en bil
-	-- Det kan diskuteres om der skal være en nullable reference til Kunden, så det er muligt at få en skadeshistorik på en kunde når de booker en bil. (Det vurderes at være uden for scope) (Nullable da skaden kan være forårsaget af andre en kunden)
+	grad int not null -- Bruges til at vurdere om bilen skal pensioneres, eller pøskrives en rabat. Jo højere en grad, jo vørre en skade, derved kan man summe alle graden af alle skader pø en bil
+	-- Det kan diskuteres om der skal vøre en nullable reference til Kunden, sø det er muligt at fø en skadeshistorik pø en kunde nør de booker en bil. (Det vurderes at vøre uden for scope) (Nullable da skaden kan vøre forørsaget af andre en kunden)
 )
 
 create table Kunde(
@@ -34,7 +34,7 @@ create table Kunde(
 	navn nvarchar(255) not null,
 	adresse nvarchar(255) not null,
 	postnummer char(4) not null,
-	email nvarchar(255) not null
+	email nvarchar(255) not null unique
 )
 
 create table Booking(
@@ -46,18 +46,18 @@ create table Booking(
 	bil char(7) not null foreign key references Bil(registreringsnummer)
 )
 
-create table Afhentning( -- Denne tabel dækker både over afhentning og aflevering. Den er for at separere en booking fra afhentningen af bilen. Kilometer ved afhentning er ikke nødvendigvis det samme som kilometer ved booking. Den gør også logikken omkring ændring af en booking simplere, da man ikke skal ind og ændre i den for at sætte kilometer ved slut.
+create table Afhentning( -- Denne tabel dækker både over afhentning og aflevering. Den er for at separere en booking fra afhentningen af bilen. Kilometer ved afhentning er ikke nødvendigvis det samme som kilometer ved booking. Den gør også logikken omkring ændring af en booking simplere, da man ikke skal ind og ændre i den for at søtte kilometer ved slut.
 	bookingnummer int not null primary key,
 	kilometerVedStart int not null,
 	kilometerVedSlut int null,
-	foreign key (bookingnummer) references Booking(bookingnummer)
+	foreign key (bookingnummer) references Booking(bookingnummer) on delete cascade,
 )
 
 go
 
-insert into Station values ('43251748', '8240')
-insert into Station values ('15546357', '8000')
-insert into Station values ('83456284', '8210')
+insert into Station values ('82401748', '8240')
+insert into Station values ('80006357', '8000')
+insert into Station values ('82106284', '8210')
 
 insert into Klasse values ('A', 1000, 30)
 insert into Klasse values ('B', 1500, 40)
@@ -65,18 +65,18 @@ insert into Klasse values ('C', 2000, 50)
 insert into Klasse values ('D', 3000, 70)
 insert into Klasse values ('E', 5000, 100)
 
-insert into Bil values ('XC53265', 'Panda, Fiat', 'B', '43251748')
-insert into Bil values ('QH68543', 'M3, BMW', 'D', '43251748')
-insert into Bil values ('NH89432', 'Punto, Fiat', 'A', '15546357')
-insert into Bil values ('IO35649', 'A-klasse, Mercedes-Benz', 'C', '15546357')
-insert into Bil values ('PA52454', 'E-klasse, Mercedes-Benz', 'E', '83456284')
-insert into Bil values ('GG12489', 'Polo, VW', 'B', '83456284')
-insert into Bil values ('TR43518', 'Polo, VW', 'B', '83456284')
-insert into Bil values ('CL42791', 'Corolla, Toyota', 'A', '43251748')
+insert into Bil values ('XC53265', 'Panda, Fiat', 'B', '82401748')
+insert into Bil values ('QH68543', 'M3, BMW', 'D', '82401748')
+insert into Bil values ('NH89432', 'Punto, Fiat', 'A', '80006357')
+insert into Bil values ('IO35649', 'A-klasse, Mercedes-Benz', 'C', '80006357')
+insert into Bil values ('PA52454', 'E-klasse, Mercedes-Benz', 'E', '80006357')
+insert into Bil values ('GG12489', 'Polo, VW', 'B', '80006357')
+insert into Bil values ('TR43518', 'Polo, VW', 'B', '82106284')
+insert into Bil values ('CL42791', 'Corolla, Toyota', 'A', '82106284')
 
-insert into Skade values ('XC53265', 'Rids på dør, førerside', 20)
+insert into Skade values ('XC53265', 'Rids pø dør, førerside', 20)
 insert into Skade values ('XC53265', 'Bule i køfanger foran', 100)
-insert into Skade values ('IO35649', 'Misfarvning på bagsæde', 10)
+insert into Skade values ('IO35649', 'Misfarvning pø bagsøde', 10)
 
 insert into Kunde (navn, adresse, postnummer, email) values ('Birgitte Gregersen', 'Strandvejen 1', '8240', 'bgregs@gmail.com')
 insert into Kunde (navn, adresse, postnummer, email) values ('Hans Christian Andersen', 'tulipanvej 8', '5000', 'hcandersen@wonderland.com')
@@ -90,13 +90,16 @@ insert into Afhentning values (3, 424154, 428463)
 insert into Booking (kundenummer, startdato, døgn, forhandletPris, bil) values (1000001, '2022/07/25 09:00', 7, null, 'TR43518')
 insert into Afhentning values (4, 424154, 428463)
 
+
 go
 
 -- Opgave 2
 
--- Booking starttidspunkt skal være inden for åbningstiderne
+-- Booking starttidspunkt skal vøre inden for åbningstiderne
 alter table Booking
-add constraint erIndenForÅbningstid check (datepart(hour, startdato) >= 6 and datepart(hour, startdato) < 20 and startdato > getdate())
+add constraint erIndenForåbningstid check (datepart(hour, startdato) >= 6 and datepart(hour, startdato) < 20 and startdato > getdate())
+
+go
 
 drop trigger if exists bookingTrigger
 
@@ -107,7 +110,9 @@ create trigger bookingTrigger
 on Booking
 instead of UPDATE, DELETE
 as
-	if exists (select * from (select startdato from inserted union select startdato from deleted) b where datediff(day, getdate(), b.startdato) <= 5) 
+	begin tran
+
+	if (select count(*) from deleted b where datediff(day, getdate(), b.startdato) <= 5) > 0
 	begin
 		print('Error updating or deleting booking')
 		rollback
@@ -123,10 +128,10 @@ as
 			bil = i.bil
 		from Booking b
 		join inserted i on b.bookingnummer = i.bookingnummer
-
+		
 		delete from booking 
 		where bookingnummer in (select bookingnummer from deleted)
-
+		
 		commit
 	end
 
@@ -134,27 +139,164 @@ as
 
 go
 
+drop index if exists ix_dato on Booking
+
+go
+
+create index ix_dato on Booking (bil, startdato, døgn)
+
+go
+
 drop procedure if exists sp_ledigeBiler
 
 go
 
--- Denne vil også sagtens kunne laves med en subquery, hvor man siger "Find bookings der overlapper, tag deres bil, filtre alle biler som ikke overlapper"
 create procedure sp_ledigeBiler @station char(8), @klasse char(1), @startdato datetime, @døgn int
 as
-	select bil.*
+	select bil.registreringsnummer, bil.beskrivelse
 	from Bil bil
-	left join Booking booking -- left join i stedet for inner join, da biler uden bookings selvfølgelig er ledige
-		on booking.bil = bil.registreringsnummer and 
-		not (booking.startdato >= dateadd(day, @døgn, @startdato) or dateadd(day, booking.døgn, booking.startdato) <= @startdato)
 	where 
 		bil.klasse = @klasse and 
 		bil.stationsnummer = @station and
-		booking.bil is null
+		bil.registreringsnummer not in (select bil from Booking where booking.startdato <= dateadd(day, @døgn, @startdato) and dateadd(day, booking.døgn, booking.startdato) >= @startdato)
 		
 
 go
 
-exec sp_ledigeBiler @station = '83456284', @klasse = 'B', @startdato = '2022/05/21 10:00', @døgn = 4
+exec sp_ledigeBiler @station = '82106284', @klasse = 'B', @startdato = '2022/05/21 10:00', @døgn = 4
 
+--(2 rows affected)
+--Table 'Booking'. Scan count 1, logical reads 28, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--Table 'Bil'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--
+--(1 row affected)
+--
+--Completion time: 2022-05-19T16:06:37.0693582+02:00
+
+--(2 rows affected)
+--Table 'Booking'. Scan count 2, logical reads 4, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--Table 'Bil'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--
+--(1 row affected)
+--
+--Completion time: 2022-05-19T16:09:40.2998717+02:00
+
+
+
+
+-- Opgave 5
+
+-- Generate data for testing
+
+declare @counter int
+set @counter = 1 
+while @counter <= 2000
+begin
+	
+	insert into Kunde (navn, adresse, postnummer, email) values ('Birgitte Gregersen', 'Strandvejen 1', '8240', 'bgregs@gmail.com' + convert(nvarchar, @counter))
+	declare @bil char(7)
+	select @bil = registreringsnummer from Bil -- Få en jævn distribution af biler
+				  order by registreringsnummer
+				  offset @counter % 10 rows
+				  fetch next 1 rows only
+
+	if @counter % 10 = 0 
+		insert into Booking (kundenummer, startdato, døgn, forhandletPris, bil) values (@@identity, dateadd(day, @counter, '2022/07/25 09:00'), 5, 4000, @bil)
+	else
+		insert into Booking (kundenummer, startdato, døgn, forhandletPris, bil) values (@@identity, dateadd(day, @counter, '2022/07/25 09:00'), 5, null, @bil)
+
+	insert into Afhentning values (@@identity, 1000, 1200)
+
+	set @counter += 1
+end
+
+set @counter = 0
+
+go
+
+declare @i int
+set @i = 1 
+while @i <= 200
+begin
+	
+	declare @bil char(7)
+	select @bil = registreringsnummer from Bil -- Få en jævn distribution af biler
+				  order by registreringsnummer
+				  offset @i % 10 rows
+				  fetch next 1 rows only
+
+	insert into Skade values (@bil, 'Bule', 10 * (@i % 30))
+
+	set @i += 1
+end
+
+set @i = 1
+
+
+go
+
+drop index if exists ix_skader on Skade
+
+go
+
+create clustered index ix_skader on Skade(bil)
+
+go
+
+select s.beskrivelse 
+from Skade s
+join Bil b on s.bil = b.registreringsnummer
+where b.registreringsnummer = 'GG12489'
+
+--(20 rows affected)
+--Table 'Skade'. Scan count 1, logical reads 3483, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--Table 'Bil'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--
+--(1 row affected)
+
+
+--(20 rows affected)
+--Table 'Skade'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--Table 'Bil'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
+--
+--(1 row affected)
+
+
+set statistics io off
+
+-- Scenarie: Aflevering af bil
+-- Bruger afleverer bilen ved station
+-- Systemet registrer skader hvis opstået
+-- Systemet udregner pris
+-- Brugeren betaler (uden for scope)
+
+declare @bookingnummer int = 4275
+declare @station int = 43251748
+
+update Afhentning
+set kilometerVedSlut = kilometerVedStart + 150
+where bookingnummer = @bookingnummer
+
+update Bil
+set bil.stationsnummer = @station
+from Bil bil
+join Booking booking on booking.bil = bil.registreringsnummer
+where booking.bookingnummer = @bookingnummer
+
+-- Skader
+
+select 
+	case when b.forhandletPris is not null then b.forhandletPris 
+		else ((b.døgn + 1) * k.døgnpris) + (k.kilometerpris * 
+			case 
+				when a.kilometerVedSlut - a.kilometerVedStart - (50 * b.døgn) < 0 then 0 
+				else (a.kilometerVedSlut - a.kilometerVedStart - (50 * b.døgn))
+			end
+	) end
+from Booking b
+join Bil bil on b.bil = bil.registreringsnummer
+join Klasse k on bil.klasse = k.klasse
+join Afhentning a on a.bookingnummer = b.bookingnummer
+where b.bookingnummer = @bookingnummer
 
 commit tran
