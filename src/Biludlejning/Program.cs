@@ -31,13 +31,24 @@ namespace Biludlejning
             int døgn = 2; // int.Parse(Console.ReadLine());
 
             using (SqlConnection connection =
-                new SqlConnection(ConnectionString))
+                         new SqlConnection(ConnectionString))
             {
                 connection.Open();
                 try
                 {
                     LedigeBiler(stationsnummer, klasse, starttidspunkt, døgn, connection);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Noget gik galt, prøv igen: " + e.Message);
+                }
+            }
 
+            using (var connection = new SqlConnection(ConnectionString))
+            {
+                connection.Open();
+                try
+                {
                     string valgteBil = Console.ReadLine();
                     if (string.IsNullOrEmpty(valgteBil))
                         return;
@@ -58,7 +69,7 @@ namespace Biludlejning
             int døgn,
             SqlConnection connection)
         {
-            var tran = connection.BeginTransaction();
+            var tran = connection.BeginTransaction(IsolationLevel.ReadUncommitted);
             SqlCommand command = new SqlCommand("sp_ledigeBiler", connection)
             {
                 CommandType = CommandType.StoredProcedure,
@@ -99,7 +110,7 @@ namespace Biludlejning
             SqlConnection connection,
             string valgteBil)
         {
-            string bookingsBilHarIPeriode = @"
+            string bookingsBilHarIPeriodeQuery = @"
                 select count(*) from Bil bil
                 join Booking booking on booking.bil = bil.registreringsnummer
                 where
@@ -113,18 +124,18 @@ namespace Biludlejning
                     insert into Booking (kundenummer, startdato, døgn, bil) values (@1, @2, @3, @4)
                 ";
 
-            var tran = connection.BeginTransaction(IsolationLevel.Serializable);
+            var tran = connection.BeginTransaction(IsolationLevel.RepeatableRead);
             try
             {
-                SqlCommand erBilLedigCommand = new SqlCommand(bookingsBilHarIPeriode, connection)
+                SqlCommand bookingsBilHarIPeriodeCommand = new SqlCommand(bookingsBilHarIPeriodeQuery, connection)
                 {
                     Transaction = tran
                 };
-                erBilLedigCommand.Parameters.AddWithValue("@valgteBil", valgteBil);
-                erBilLedigCommand.Parameters.AddWithValue("@startdato", starttidspunkt);
-                erBilLedigCommand.Parameters.AddWithValue("@døgn", døgn);
+                bookingsBilHarIPeriodeCommand.Parameters.AddWithValue("@valgteBil", valgteBil);
+                bookingsBilHarIPeriodeCommand.Parameters.AddWithValue("@startdato", starttidspunkt);
+                bookingsBilHarIPeriodeCommand.Parameters.AddWithValue("@døgn", døgn);
 
-                SqlDataReader reader = erBilLedigCommand.ExecuteReader();
+                SqlDataReader reader = bookingsBilHarIPeriodeCommand.ExecuteReader();
 
                 if (reader.Read())
                 {

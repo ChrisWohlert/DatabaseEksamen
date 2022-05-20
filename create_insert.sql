@@ -183,27 +183,10 @@ as
 		bil.klasse = @klasse and 
 		bil.stationsnummer = @station and
 		bil.registreringsnummer not in (select bil from Booking where booking.startdato <= dateadd(day, @døgn, @startdato) and dateadd(day, booking.døgn, booking.startdato) >= @startdato)
-		
 
 go
 
 exec sp_ledigeBiler @station = '82106284', @klasse = 'B', @startdato = '2022/05/21 10:00', @døgn = 4
-
---(2 rows affected)
---Table 'Booking'. Scan count 1, logical reads 28, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---Table 'Bil'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---
---(1 row affected)
---
---Completion time: 2022-05-19T16:06:37.0693582+02:00
-
---(2 rows affected)
---Table 'Booking'. Scan count 2, logical reads 4, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---Table 'Bil'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---
---(1 row affected)
---
---Completion time: 2022-05-19T16:09:40.2998717+02:00
 
 
 
@@ -271,56 +254,5 @@ select s.beskrivelse
 from Skade s
 join Bil b on s.bil = b.registreringsnummer
 where b.registreringsnummer = 'GG12489'
-
---(20 rows affected)
---Table 'Skade'. Scan count 1, logical reads 3483, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---Table 'Bil'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---
---(1 row affected)
-
-
---(20 rows affected)
---Table 'Skade'. Scan count 1, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---Table 'Bil'. Scan count 0, logical reads 2, physical reads 0, page server reads 0, read-ahead reads 0, page server read-ahead reads 0, lob logical reads 0, lob physical reads 0, lob page server reads 0, lob read-ahead reads 0, lob page server read-ahead reads 0.
---
---(1 row affected)
-
-
-set statistics io off
-
--- Scenarie: Aflevering af bil
--- Bruger afleverer bilen ved station
--- Systemet registrer skader hvis opstået
--- Systemet udregner pris
--- Brugeren betaler (uden for scope)
-
-declare @bookingnummer int = 4275
-declare @station int = 43251748
-
-update Afhentning
-set kilometerVedSlut = kilometerVedStart + 150
-where bookingnummer = @bookingnummer
-
-update Bil
-set bil.stationsnummer = @station
-from Bil bil
-join Booking booking on booking.bil = bil.registreringsnummer
-where booking.bookingnummer = @bookingnummer
-
--- Skader
-
-select 
-	case when b.forhandletPris is not null then b.forhandletPris 
-		else ((b.døgn + 1) * k.døgnpris) + (k.kilometerpris * 
-			case 
-				when a.kilometerVedSlut - a.kilometerVedStart - (50 * b.døgn) < 0 then 0 
-				else (a.kilometerVedSlut - a.kilometerVedStart - (50 * b.døgn))
-			end
-	) end
-from Booking b
-join Bil bil on b.bil = bil.registreringsnummer
-join Klasse k on bil.klasse = k.klasse
-join Afhentning a on a.bookingnummer = b.bookingnummer
-where b.bookingnummer = @bookingnummer
 
 commit tran
