@@ -113,4 +113,4 @@ as
 		bil.registreringsnummer not in (select bil from Booking where booking.startdato <= dateadd(day, @døgn, @startdato) and dateadd(day, booking.døgn, booking.startdato) >= @startdato)
 ```
 Dette gør den på følgende måde:
-![alt text](https://github.com/ChrisWohlert/DatabaseEksamen/blob/master/ledige_biler_uden_index.png?raw=true)
+![alt text](https://github.com/ChrisWohlert/DatabaseEksamen/blob/main/ledige_biler_uden_index.png?raw=true)
