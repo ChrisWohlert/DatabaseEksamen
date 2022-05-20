@@ -181,12 +181,15 @@ Når mange brugere bliver præsenteret for ledige biler på samme tid, skal det 
 
 Når der skal bookes, er det kritisk at den samme bil ikke bliver booket flere gange på samme tid. De forskellige *read* locks, sætter locks på den data de læser, men hvad med den data som ikke findes endnu? *Repeatable Read* sikrer sig data ikke bliver opdateret mens den læser, men den forhindrer ikke at data bliver oprettet, *Phantom read*. Selvom Snapshot Isolation gør det muligt for flere brugere at se ledige biler på samme tid, forhindrer den ikke at den samme bil bliver booket to gange. Snapshot Isolation laver en kopi af det relevante data, så der ikke ændres i det i levetiden af transaction, men den opfanger ikke hvis der er blevet oprettet nyt data. Det er derfor muligt med Snapshot Isolation at få to bookinger af samme bil på samme tid.
 
-Isolation Level er sat til Serializable, det giver den stærkste sikkerhed, men der er også brugervendte problemer. Det er muligt at blive præsenteret for en bil som viser sig ikke at være ledig alligevel. Det gør også at flere kunder ikke kan bekræfte deres valg på samme tid. Dette er selvfølgelig ikke optimalt, og kan i virkeligheden nok løses med et *forced insert*. Hvor dataene bliver oprettet før brugeren bekræfter, og ved afkræftelse bliver de slettet igen.
+Isolation Level er sat til Serializable, det giver den stærkste sikkerhed, men der er også brugervendte problemer. Det er muligt at blive præsenteret for en bil som viser sig ikke at være ledig alligevel. Det gør også at flere kunder ikke kan bekræfte deres valg på samme tid. Dette er selvfølgelig ikke optimalt, og kan i virkeligheden nok løses med et *forced insert*. Hvor dataene bliver oprettet før brugeren bekræfter, og i tilfælde af afkræftelse bliver de slettet igen.
 
 # Bilag
 
 ## Bilag UML og Tabel diagram
 
+![uden index](https://github.com/ChrisWohlert/DatabaseEksamen/blob/main/uml.drawio.png?raw=true)
+
+![uden index](https://github.com/ChrisWohlert/DatabaseEksamen/blob/main/tabeldesign.png?raw=true)
 
 
 ## Bilag SQL
