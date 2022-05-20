@@ -23,10 +23,10 @@ create table Bil(
 )
 
 create table Skade(
-	bil char(7) not null foreign key references Bil(registreringsnummer) on delete cascade, -- Clustered index er ikke på, da bil ikke er primary key, eftersom den ikke skal være unik.
+	bil char(7) not null foreign key references Bil(registreringsnummer), -- Clustered index er ikke på, da bil ikke er primary key, eftersom den ikke skal være unik.
 	beskrivelse nvarchar(255) not null,
-	grad int not null -- Bruges til at vurdere om bilen skal pensioneres, eller pøskrives en rabat. Jo højere en grad, jo vørre en skade, derved kan man summe alle graden af alle skader pø en bil
-	-- Det kan diskuteres om der skal vøre en nullable reference til Kunden, sø det er muligt at fø en skadeshistorik pø en kunde nør de booker en bil. (Det vurderes at vøre uden for scope) (Nullable da skaden kan vøre forørsaget af andre en kunden)
+	grad int not null -- Bruges til at vurdere om bilen skal pensioneres, eller påskrives en rabat. Jo højere en grad, jo værre en skade, derved kan man summe alle graden af alle skader på en bil
+	-- Det kan diskuteres om der skal være en nullable reference til Kunden, så det er muligt at få en skadeshistorik pø en kunde når de booker en bil. (Det vurderes at være uden for scope) (Nullable da skaden kan være forårsaget af andre en kunden)
 )
 
 create table Kunde(
@@ -44,6 +44,7 @@ create table Booking(
 	døgn int not null default(1),
 	forhandletPris decimal null,
 	bil char(7) not null foreign key references Bil(registreringsnummer)
+	constraint erDøgnOver0 check (døgn >= 0)
 )
 
 create table Afhentning( -- Denne tabel dækker både over afhentning og aflevering. Den er for at separere en booking fra afhentningen af bilen. Kilometer ved afhentning er ikke nødvendigvis det samme som kilometer ved booking. Den gør også logikken omkring ændring af en booking simplere, da man ikke skal ind og ændre i den for at søtte kilometer ved slut.
@@ -97,24 +98,24 @@ go
 
 -- Booking starttidspunkt skal vøre inden for åbningstiderne
 alter table Booking
-add constraint erIndenForåbningstid check (datepart(hour, startdato) >= 6 and datepart(hour, startdato) < 20 and startdato > getdate())
+add constraint erIndenforåbningstid check (datepart(hour, startdato) >= 6 and datepart(hour, startdato) < 20 and startdato > getdate())
 
 go
 
-drop trigger if exists bookingTrigger
+drop trigger if exists booking_update_validation_trigger
 
 go
 
--- En booking må ikke ændres eller slettes hvis startdato er inden for 5 dage
-create trigger bookingTrigger
+-- En booking må ikke ændres hvis startdato er inden for 5 dage
+create trigger booking_update_validation_trigger
 on Booking
-instead of UPDATE, DELETE
+instead of UPDATE
 as
 	begin tran
 
-	if (select count(*) from deleted b where datediff(day, getdate(), b.startdato) <= 5) > 0
+	if (select count(*) from deleted d where datediff(day, getdate(), d.startdato) <= 5) > 0
 	begin
-		print('Error updating or deleting booking')
+		print('Error updating booking')
 		rollback
 	end
 	else
@@ -129,6 +130,29 @@ as
 		from Booking b
 		join inserted i on b.bookingnummer = i.bookingnummer
 		
+		commit
+	end
+	
+go
+
+drop trigger if exists booking_delete_validation_trigger
+
+go
+
+-- En booking må ikke slettes hvis startdato er inden for 5 dage
+create trigger booking_delete_validation_trigger
+on Booking
+instead of DELETE
+as
+	begin tran
+
+	if (select count(*) from deleted d where datediff(day, getdate(), d.startdato) <= 5) > 0
+	begin
+		print('Error deleting booking')
+		rollback
+	end
+	else
+	begin
 		delete from booking 
 		where bookingnummer in (select bookingnummer from deleted)
 		
